@@ -22,12 +22,12 @@ app.delete("/delete/:id", async (req, res) => {
   } else {
     try {
       console.log(req.body.id);
-      await client.query(`DELETE FROM employees WHERE id = ${req.params.id}`);
+      await client.query(`UPDATE employees SET isactive = false WHERE id = ${req.params.id}`);
       res.status(200);
-      res.send("Employee was successfully deleted!");
+      res.send("Employee was successfully disabled!");
     } catch (e) {
       res.status(500);
-      res.send("Error: Failed to delete employee!");
+      res.send("Error: Failed to disable employee!");
     } finally {
       res.end();
     }
@@ -49,10 +49,10 @@ app.post("/add", async (req, res) => {
   }
 });
 
-app.put("/update/:ogid/:id/:name/:title/:avatarurl", async (req, res) => {
+app.put("/update/:ogid/:id/:name/:title/:avatarurl/:isactive", async (req, res) => {
   try {
     await client.query(
-      `UPDATE employees SET id = ${req.params.id}, name = '${req.params.name}', title = '${req.params.title}', avatarurl = '${decodeURIComponent(req.params.avatarurl)}' WHERE id = ${req.params.ogid}`
+      `UPDATE employees SET id = ${req.params.id}, name = '${req.params.name}', title = '${req.params.title}', avatarurl = '${decodeURIComponent(req.params.avatarurl)}', isactive = ${req.params.isactive} WHERE id = ${req.params.ogid}`
     );
     res.status(200);
     res.send("Employee updated");
@@ -67,6 +67,20 @@ app.put("/update/:ogid/:id/:name/:title/:avatarurl", async (req, res) => {
 app.get("/employees", async (req, res) => {
   const results = await client
     .query("SELECT * FROM employees")
+    .then((payload) => {
+      return payload.rows;
+    })
+    .catch(() => {
+      throw new Error("Query failed");
+    });
+  res.setHeader("Content-Type", "application/json");
+  res.status(200);
+  res.send(JSON.stringify(results));
+});
+
+app.get("/activeEmployees", async (req, res) => {
+  const results = await client
+    .query("SELECT * FROM employees Where isactive = true")
     .then((payload) => {
       return payload.rows;
     })

@@ -14,6 +14,9 @@ import DialogActions from '@mui/material/DialogActions';
 import DialogContent from '@mui/material/DialogContent';
 import DialogContentText from '@mui/material/DialogContentText';
 import DialogTitle from '@mui/material/DialogTitle';
+import FormGroup from '@mui/material/FormGroup';
+import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 
 const SearchTextField = styled(TextField)({
     '& .MuiInputLabel-root': {
@@ -42,24 +45,26 @@ const SearchTextField = styled(TextField)({
   });
 
 export default function EmployeeFinder() {
-  const [open, setOpen] = React.useState(false);
-  const [employees, setEmployees] = React.useState([[]]);
-  const [newId, setNewId] = React.useState(0)
-  const [newName, setNewName] = React.useState("")
-  const [newTitle, setNewTitle] = React.useState("")
-  const [newAvatar, setNewAvatar] = React.useState("")
-  const [avatarDisplay, setAvatarDisplay] = React.useState("https://api.dicebear.com/6.x/notionists/svg?seed=$default")
-  const [search, setSearch] = React.useState('');
-  const [alertVisibility, setAlertVisibility] = React.useState(false);
-  const [alertContent, setAlertContent] = React.useState('');
-  const [gridVisibility, setGridVisibility] = React.useState(false);
-  const [alertContentMain, setAlertContentMain] = React.useState('');
-  const [alertTypeMain, setAlertTypeMain] = React.useState('');
-  const [alertVisibilityMain, setAlertVisibilityMain] = React.useState(false);
-  const [alertContentSecondary, setAlertContentSecondary] = React.useState('');
-  const [alertTypeSecondary, setAlertTypeSecondary] = React.useState('');
-  const [alertVisibilitySecondary, setAlertVisibilitySecondary] = React.useState(false);
-  const [page, setPage] = React.useState(0)
+    const [open, setOpen] = React.useState(false);
+    const [employees, setEmployees] = React.useState([[]]);
+    const [newId, setNewId] = React.useState(0)
+    const [newName, setNewName] = React.useState("")
+    const [newTitle, setNewTitle] = React.useState("")
+    const [newAvatar, setNewAvatar] = React.useState("")
+    const [avatarDisplay, setAvatarDisplay] = React.useState("https://api.dicebear.com/6.x/notionists/svg?seed=$default")
+    const [search, setSearch] = React.useState('');
+    const [alertVisibility, setAlertVisibility] = React.useState(false);
+    const [alertContent, setAlertContent] = React.useState('');
+    const [gridVisibility, setGridVisibility] = React.useState(false);
+    const [alertContentMain, setAlertContentMain] = React.useState('');
+    const [alertTypeMain, setAlertTypeMain] = React.useState('');
+    const [alertVisibilityMain, setAlertVisibilityMain] = React.useState(false);
+    const [alertContentSecondary, setAlertContentSecondary] = React.useState('');
+    const [alertTypeSecondary, setAlertTypeSecondary] = React.useState('');
+    const [alertVisibilitySecondary, setAlertVisibilitySecondary] = React.useState(false);
+    const [inactiveToggle, setInactiveToggle] = React.useState(false);
+    const [page, setPage] = React.useState(0)
+    const [trigger, setTrigger] = React.useState(0)
 
   const handleClickOpen = () => {
     setNewId(0)
@@ -74,8 +79,25 @@ export default function EmployeeFinder() {
     setOpen(false);
   };
 
-    const fetchAll = () => {
-        fetch("/employees")
+  const handleInactiveToggle = (event) => {
+    setInactiveToggle(event.target.checked);
+    if (event.target.checked && gridVisibility === true) {
+        fetchAll("/employees")
+    } else if (!event.target.checked && gridVisibility === true) {
+        fetchAll("/activeEmployees")
+    }
+  }
+
+  const handleFetchAll = () => {
+    if (inactiveToggle) {
+        fetchAll("/employees")
+    } else {
+        fetchAll("/activeEmployees")
+    }
+  }
+
+    const fetchAll = (fetchType) => {
+        fetch(fetchType)
             .then((response) => response.json())
             .then(data => {
                 data.sort((a, b) => a.id - b.id);
@@ -98,7 +120,10 @@ export default function EmployeeFinder() {
                 if (page > employeeList.length - 1) {
                     setPage(employeeList.length - 1)
                 }
+                
                 setEmployees(employeeList);
+                setTrigger(trigger + 1);
+                
                 if (data.length > 0) {
                     setGridVisibility(true)
                     setAlertContentMain("All employees were successfully loaded.")
@@ -136,7 +161,10 @@ export default function EmployeeFinder() {
                 if (page > employeeList.length - 1) {
                     setPage(employeeList.length - 1)
                 }
+
                 setEmployees(employeeList);
+                setTrigger(trigger + 1);
+
                 if (data.length > 0) {
                     setGridVisibility(true)
                     setAlertContentMain(`${data.length} employees were found matching the search terms.`)
@@ -274,13 +302,16 @@ export default function EmployeeFinder() {
             <div>
                 <ButtonGroup className='searchButtons' variant="contained" aria-label="outlined primary button group">
                     <Button onClick={findHandle}>Search by name</Button>
-                    <Button onClick={fetchAll}>Display all</Button>
+                    <Button onClick={handleFetchAll}>Display all</Button>
                 </ButtonGroup>
+                <FormGroup className='displayInactive'>
+                    <FormControlLabel className='displayInactiveToggle' control={<Switch onChange={handleInactiveToggle} />} label="Display inactive employees" />
+                </FormGroup>
             </div>
             <Collapse in={gridVisibility} timeout={1000}>
                 <div className="cardBox">
                     <div className='cardGrid'>
-                    {employees[page].map(employee => <EmployeeCard key={employee.id} employee={employee} messageEdit={editMessage} refresh={fetchAll}/>)}
+                    {employees[page].map(employee => <EmployeeCard key={employee.id} employee={employee} messageEdit={editMessage} refresh={handleFetchAll}/>)}
                     </div>
                     <Pagination className='pageSlider' size='large' count={employees.length} page={page + 1} onChange={changePage} />
                 </div>

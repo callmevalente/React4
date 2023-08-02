@@ -14,6 +14,7 @@ import Grow from '@mui/material/Grow';
 import Checkbox from '@mui/material/Checkbox';
 import FormGroup from '@mui/material/FormGroup';
 import FormControlLabel from '@mui/material/FormControlLabel';
+import Switch from '@mui/material/Switch';
 
 export default function EmployeeCard(props) {
     const [open, setOpen] = React.useState(false);
@@ -26,8 +27,24 @@ export default function EmployeeCard(props) {
     const [title, setTitle] = React.useState(props.employee.title)
     const [avatar, setAvatar] = React.useState(props.employee.avatarurl)
     const [avatarDisplay, setAvatarDisplay] = React.useState(props.employee.avatarurl)
+    const [employeeState, setEmployeeState] = React.useState(props.employee.isactive)
     const [alertVisibility, setAlertVisibility] = React.useState(false);
     const [alertContent, setAlertContent] = React.useState('');
+    const [editCardStatus, setEditCardStatus] = React.useState("");
+    const [cardType, setCardType] = React.useState(() => {
+        if (props.employee.isactive) {
+            return "card"
+        } else {
+            return "disabledCard"
+        }
+    })
+    const [deleteDisplay, setDeleteDisplay] = React.useState(() => {
+        if (props.employee.isactive) {
+            return "visibleButton"
+        } else {
+            return "hiddenButton"
+        }
+    })
 
     const deleteUser = () => {
         if (deleteCheck) {
@@ -35,7 +52,11 @@ export default function EmployeeCard(props) {
                 method: "DELETE"
             })
             props.refresh()
-            props.messageEdit("success", "The employee entry was successfully deleted!", 2)
+            setEditCardStatus("disabledCardEdit")
+            setCardType("disabledCard")
+            setDeleteDisplay("hiddenButton")
+            setEmployeeState(false)
+            props.messageEdit("success", "The employee entry was successfully deactivated!", 2)
         } else {
             setDeleteAlertVisibility(true)
         }
@@ -53,10 +74,11 @@ export default function EmployeeCard(props) {
             let safeName = name.replace("'","''");
             let safeTitle = title.replace("'","''");
             let safeAvatar = avatar.replace("'","''");
-            fetch(`/update/${ogId}/${id}/${safeName}/${safeTitle}/${encodeURIComponent(safeAvatar)}`, {
+            fetch(`/update/${ogId}/${id}/${safeName}/${safeTitle}/${encodeURIComponent(safeAvatar)}/${employeeState}`, {
                 method: "PUT"
             })
             handleClose()
+            props.refresh()
             props.messageEdit("success", "The employee entry was successfully updated!", 1)
         }else{
             setAlertContent("The employee ID entered is not valid.")
@@ -75,6 +97,11 @@ export default function EmployeeCard(props) {
     }
 
     const handleClickOpen = () => {
+        if (props.employee.isactive) {
+            setEditCardStatus("cardEdit")
+        } else {
+            setEditCardStatus("disabledCardEdit")
+        }
         setOpen(true);
     };
     
@@ -90,6 +117,20 @@ export default function EmployeeCard(props) {
         setDeleteCheck(false);
         setDeleteOpen(false);
     };
+
+    const handleStatusToggle = (event) => {
+        if (event.target.checked) {
+            setEditCardStatus("disabledCardEdit")
+            setCardType("disabledCard")
+            setDeleteDisplay("hiddenButton")
+            setEmployeeState(false)
+        } else {
+            setEditCardStatus("cardEdit")
+            setCardType("card")
+            setDeleteDisplay("visibleButton")
+            setEmployeeState(true)
+        }
+    }
 
     const handleDeleteCheck = () => {
        setDeleteCheck(!deleteCheck)
@@ -113,7 +154,7 @@ export default function EmployeeCard(props) {
     }
 
     return (
-        <div className="card">
+        <div className={cardType}>
             <img 
                 src={avatar} 
                 alt="Avatar" 
@@ -125,7 +166,7 @@ export default function EmployeeCard(props) {
                 <p>{title}</p>
                 <div className='cardButtons'>
                     <EditSharpIcon style={{cursor: 'pointer'}} fontSize='large' sx={{ color: '#010A26' }} onClick={handleClickOpen}/>
-                    <DeleteIcon style={{cursor: 'pointer'}} fontSize='large' sx={{ color: '#bd2014' }} onClick={handleDeleteOpen}/>
+                    <DeleteIcon className={deleteDisplay} style={{cursor: 'pointer'}} fontSize='large' sx={{ color: '#bd2014' }} onClick={handleDeleteOpen} />
                 </div>
                 <Dialog open={open} onClose={handleClose} TransitionComponent={Grow} transitionDuration={1000}>
                     <DialogTitle>Edit the employee:</DialogTitle>
@@ -175,13 +216,18 @@ export default function EmployeeCard(props) {
                                 onChange={changingAvatar}
                             />
                             <Button onClick={generateAvatar}>Generate Randon Avatar</Button>
+                            <div>
+                                <label>Deactivate Employee?</label>
+                                <Switch onChange={handleStatusToggle} checked={!employeeState}/>
+                            </div>
+                            
                             <DialogActions>
                                 <Button onClick={handleClose}>Cancel</Button>
                                 <Button onClick={save}>Submit</Button>
                             </DialogActions>
                         </DialogContent>
                         <div>
-                            <div className="cardEdit">
+                            <div className={editCardStatus}>
                                 <img 
                                     src={avatarDisplay} 
                                     alt="Avatar" 
@@ -220,12 +266,12 @@ export default function EmployeeCard(props) {
                 </DialogTitle>
                 <DialogContent>
                 <DialogContentText id="alert-dialog-description">
-                    Are you sure that you wish to delete {name} from our employee database?
+                    Are you sure that you wish to deactivate {name} from our employee database?
                 </DialogContentText>
                 <FormGroup>
                     <FormControlLabel 
                         control={<Checkbox />} 
-                        label="Check this box to confirm that you wish to delete this employee."
+                        label="Check this box to confirm that you wish to deactivate this employee."
                         checked={deleteCheck}
                         onChange={handleDeleteCheck} />
                 </FormGroup>
@@ -233,7 +279,7 @@ export default function EmployeeCard(props) {
                 <DialogActions>
                 <Button onClick={handleCloseDelete}>Cancel</Button>
                 <Button onClick={deleteUser} autoFocus>
-                    DELETE
+                    DEACTIVATE
                 </Button>
                 </DialogActions>
                 <Fade
@@ -246,7 +292,7 @@ export default function EmployeeCard(props) {
                         }}
                         style={{ position: "absolute", bottom: 0, left: 0, right: 0, zIndex: 999 }}
                         >
-                        <Alert severity='error'>You must check the box to confirm the deletion.</Alert>
+                        <Alert severity='error'>You must check the box to confirm the deactivation.</Alert>
                     </Fade>
             </Dialog>
         </div>
